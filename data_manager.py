@@ -1,5 +1,9 @@
+import os
+import requests
 from models import db, User, Movie
 import logging
+
+OMDB_API_KEY = os.environ.get("OMDB_API_KEY")
 
 # Logging configuration
 logging.basicConfig(
@@ -33,54 +37,45 @@ class DataManger():
             logging.error(f"Error fetching all users: {e}")
             return None
 
-    def update_user(self, user_id, new_name):
-        """Update a user's name"""
-        try:
-            user = db.session.get(User, user_id)
-            if not user:
-                return None
-            user.name = new_name
-            db.session.commit()
-            return user
-        except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error updating user: {e}")
-            return None
-
-    def delete_user(self, user_id):
-        """Delete a user"""
-        try:
-            user = db.session.get(User, user_id)
-            if not user:
-                return False
-            db.session.delete(user)
-            db.session.commit()
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error deleting user: {e}")
-            return False
-
     # ------------------ Movie Methods ------------------
 
-    def create_movie(self, user_id, title, publication_year, cover):
-        """Create a new movie for a given user"""
+    def add_movie_for_user(self, user_id, title):
+        """Add a movie for a user using OMDb API"""
+        if not OMDB_API_KEY:
+            logging.error("OMDB_API_KEY not set in environment variables")
+            return None
+
         try:
-            user = db.session.get(User, user_id)
-            if not user:
-                return None
-            new_movie = Movie(
-                title=title,
-                publication_year=publication_year,
-                cover=cover,
-                user_id=user_id
+            # OMDb API Request
+            response = requests.get(
+                "http://www.omdbapi.com/",
+                params={"t": title, "apikey": OMDB_API_KEY},
+                timeout=5
             )
-            db.session.add(new_movie)
-            db.session.commit()
-            return new_movie
+            data = response.json()
+
+            if data.get("Response") == "False":
+                logging.info(f"Movie '{title}' not found in OMDb")
+                return None
+
+            # Preparing a movie object
+            movie_obj = Movie(
+                title=data["Title"],
+                publication_year=int(data["Year"]),
+                cover=data.get("Poster"),
+            )
+
+            # Save to database
+            return self.create_movie(
+                user_id,
+                movie_obj.title,
+                movie_obj.publication_year,
+                movie_obj.cover
+            )
+
         except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error creating movie: {e}")
+            logging.error(
+                f"Error adding movie '{title}' for user {user_id}: {e}")
             return None
 
     def get_movies_by_user(self, user_id):
