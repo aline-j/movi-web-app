@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <title>MovieApp</title>
+  </head>
+  <body>
+    {% extends "base.html" %}
+    {% block content %}
+        <a href="{{ url_for('index') }}" class="back-link">
+          ← Back to Users
+        </a>
+
+        <h1>Movies for {{ user.name }}</h1>
+
+        <div>
+          <ul class="movie-list">
+            {% for movie in movies %}
+            <li class="movie-card">
+              <img src="{{ movie.cover }}" alt="{{ movie.title }}" width="100">
+              Year: {{ movie.publication_year }}
+
+              <!-- UPDATE -->
+              <form
+                action="{{ url_for('update_movie_route', user_id=user.id, movie_id=movie.id) }}"
+                method="post"
+              >
+                <input
+                  type="text"
+                  name="title"
+                  value="{{ movie.title }}"
+                  required
+                />
+                <button type="submit" class="btn">Update</button>
+              </form>
+
+              <!-- DELETE -->
+              <form
+                action="{{ url_for('delete_movie_route', user_id=user.id, movie_id=movie.id) }}"
+                method="post"
+              >
+                <button type="submit" class="btn-delete">Delete</button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div>
+          <form action="{{ url_for('add_movie_route', user_id=user.id) }}" method="post">
+            <label>
+              Add New Movie
+              <input type="text" name="title" placeholder="Movie title" />
+              <input type="text" name="year" placeholder="Year (optional)" />
+            </label>
+            <button type="submit" class="btn">Add Movie</button>
+          </form>
+        </div>
+    {% endblock %}
+  </body>
+</html>

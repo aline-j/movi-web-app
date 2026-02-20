@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <title>MovieApp</title>
+  </head>
+  <body>
+    {% extends "base.html" %}
+    {% block content %}
+        <h1>Users</h1>
+
+        <div>
+          <ul class="user-list">
+            {% for user in users %}
+            <li class="user-card">
+              {{ user.name }}
+              <a
+                href="{{ url_for('get_movies_route', user_id=user.id) }}"
+                class="btn"
+              >
+                View Movies
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div>
+          <form action="{{ url_for('create_user_route') }}" method="post">
+            <label>
+              Add New User
+              <input type="text" name="name" placeholder="Name" />
+            </label>
+            <button type="submit" class="btn">Add User</button>
+          </form>
+        </div>
+    {% endblock %}
+  </body>
+</html>
