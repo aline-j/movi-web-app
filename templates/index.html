@@ -12,20 +12,15 @@
     {% block content %}
         <h1>Users</h1>
 
-        <div>
-          <ul class="user-list">
-            {% for user in users %}
-            <li class="user-card">
+        <div class="users-grid">
+          {% for user in users %}
+            <div class="user-card">
               {{ user.name }}
-              <a
-                href="{{ url_for('get_movies_route', user_id=user.id) }}"
-                class="btn"
-              >
+              <a href="{{ url_for('get_movies_route', user_id=user.id) }}" class="btn">
                 View Movies
               </a>
-            </li>
-            {% endfor %}
-          </ul>
+            </div>
+          {% endfor %}
         </div>
 
         <div>

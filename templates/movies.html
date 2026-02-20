@@ -17,12 +17,10 @@
         <h1>Movies for {{ user.name }}</h1>
 
         <div>
-          <ul class="movie-list">
+          <div class="movies-grid">
             {% for movie in movies %}
-            <li class="movie-card">
+            <div class="movie-card">
               <img src="{{ movie.cover }}" alt="{{ movie.title }}" width="100">
-              Year: {{ movie.publication_year }}
-
               <!-- UPDATE -->
               <form
                 action="{{ url_for('update_movie_route', user_id=user.id, movie_id=movie.id) }}"
@@ -36,7 +34,7 @@
                 />
                 <button type="submit" class="btn">Update</button>
               </form>
-
+              Year: {{ movie.publication_year }}
               <!-- DELETE -->
               <form
                 action="{{ url_for('delete_movie_route', user_id=user.id, movie_id=movie.id) }}"
@@ -44,9 +42,9 @@
               >
                 <button type="submit" class="btn-delete">Delete</button>
               </form>
-            </li>
+            </div>
             {% endfor %}
-          </ul>
+          </div>
         </div>
 
         <div>
