@@ -13,21 +13,22 @@ logging.basicConfig(
 )
 
 
-class DataManger():
+def create_user(name):
+    """Create a new user"""
+    try:
+        new_user = User(name=name)
+        db.session.add(new_user)
+        db.session.commit()
+        return new_user
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error creating user: {e}")
+        return None
+
+
+class DataManager():
 
     # ------------------ User Methods ------------------
-
-    def create_user(self, name):
-        """Create a new user"""
-        try:
-            new_user = User(name=name)
-            db.session.add(new_user)
-            db.session.commit()
-            return new_user
-        except Exception as e:
-            db.session.rollback()
-            logging.error(f"Error creating user: {e}")
-            return None
 
     def get_all_users(self):
         """Return a list of all users"""
@@ -37,16 +38,31 @@ class DataManger():
             logging.error(f"Error fetching all users: {e}")
             return None
 
+    def create_user(self, name):
+        """Add a new user if it doesn't exist"""
+        try:
+            return create_user(name)
+        except Exception as e:
+            logging.error(f"Error create new user: {e}")
+            return None
+
+    def get_user(self, user_id):
+        """Return a user by ID"""
+        try:
+            return User.query.get(user_id)
+        except Exception as e:
+            logging.error(f"Error fetching user {user_id}: {e}")
+
+
     # ------------------ Movie Methods ------------------
 
     def add_movie_for_user(self, user_id, title):
         """Add a movie for a user using OMDb API"""
         if not OMDB_API_KEY:
-            logging.error("OMDB_API_KEY not set in environment variables")
+            logging.error("OMDB_API_KEY not set")
             return None
 
         try:
-            # OMDb API Request
             response = requests.get(
                 "http://www.omdbapi.com/",
                 params={"t": title, "apikey": OMDB_API_KEY},
@@ -55,27 +71,23 @@ class DataManger():
             data = response.json()
 
             if data.get("Response") == "False":
-                logging.info(f"Movie '{title}' not found in OMDb")
+                logging.info(f"Movie '{title}' not found")
                 return None
 
-            # Preparing a movie object
-            movie_obj = Movie(
+            movie = Movie(
                 title=data["Title"],
                 publication_year=int(data["Year"]),
                 cover=data.get("Poster"),
+                user_id=user_id
             )
 
-            # Save to database
-            return self.create_movie(
-                user_id,
-                movie_obj.title,
-                movie_obj.publication_year,
-                movie_obj.cover
-            )
+            db.session.add(movie)
+            db.session.commit()
+            return movie
 
         except Exception as e:
-            logging.error(
-                f"Error adding movie '{title}' for user {user_id}: {e}")
+            db.session.rollback()
+            logging.error(f"Error adding movie: {e}")
             return None
 
     def get_movies_by_user(self, user_id):
@@ -113,3 +125,4 @@ class DataManger():
             db.session.rollback()
             logging.error(f"Error deleting movie: {e}")
             return False
+
