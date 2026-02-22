@@ -4,7 +4,6 @@ import requests
 import logging
 from models import db, User, Movie
 
-
 load_dotenv()
 
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY")
@@ -34,7 +33,7 @@ class DataManager:
         """Return a list of all users"""
         try:
             return User.query.all()
-        except Exception as e:
+        except Exception:
             logger.exception("Error fetching all users")
             return []
 
@@ -54,34 +53,41 @@ class DataManager:
 
     def add_movie_for_user(self, user_id, title):
         """Add a movie for a user using OMDb API"""
-        if not OMDB_API_KEY:
-            logger.error("OMDB_API_KEY not set")
-            return None
-
-        user = get_user(user_id)
+        user = self.get_user(user_id)
         if not user:
             logger.warning(f"User {user_id} not found")
             return None
+
+        existing_movie = Movie.query.filter_by(title=title, user_id=user_id).first()
+
+        if existing_movie:
+            logger.info(f"Movie {title} already exists for user {user_id}")
+            return existing_movie
 
         try:
             response = requests.get(
                 "https://www.omdbapi.com/",
                 params={"t": title, "apikey": OMDB_API_KEY},
-                timeout=5
+                timeout=5,
             )
             response.raise_for_status()
             data = response.json()
 
             if data.get("Response") == "False":
-                logger.info(f"Movie '{title}' not found")
+                logger.info(f"Movie {title} not found")
                 return None
 
+            year_raw = data.get("Year", "")
+            publication_year = (
+                int(year_raw[:4]) if year_raw[:4].isdigit() else None
+            )
+
             movie = Movie(
-                title=data["Title"],
-                publication_year=int(data["Year"]),
+                title=data.get("Title"),
+                publication_year=publication_year,
                 director=data.get("Director"),
                 cover=data.get("Poster"),
-                user_id=user_id
+                user_id=user_id,
             )
 
             db.session.add(movie)
@@ -90,7 +96,7 @@ class DataManager:
 
         except Exception:
             db.session.rollback()
-            logger.exception("Error adding movie")
+            logger.exception(f"Error adding movie for user {user_id}")
             return None
 
     def get_movies_by_user(self, user_id):
@@ -115,7 +121,7 @@ class DataManager:
 
         except Exception:
             db.session.rollback()
-            logger.exception("Error updating movie title")
+            logger.exception(f"Error updating movie {movie_id}")
             return None
 
     def delete_movie(self, user_id, movie_id):
@@ -132,5 +138,5 @@ class DataManager:
 
         except Exception:
             db.session.rollback()
-            logger.exception("Error deleting movie")
+            logger.exception(f"Error deleting movie {movie_id}")
             return False

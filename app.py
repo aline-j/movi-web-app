@@ -1,17 +1,18 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, abort
 from data_manager import DataManager
 from models import db
-import os
 
 app = Flask(__name__)
 
 data_mgr = DataManager()
 
+
 # ------------------ Configuration ------------------
 
-os.makedirs("data", exist_ok=True)
-
 basedir = os.path.abspath(os.path.dirname(__file__))
+os.makedirs(os.path.join(basedir, "data"), exist_ok=True)
+
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "sqlite:///" + os.path.join(basedir, "data", "movi.db")
 )
@@ -29,37 +30,19 @@ def index():
 
 @app.route("/users", methods=["POST"])
 def create_user_route():
-    name = request.form.get('name')
-
+    name = request.form.get("name")
     if not name:
         abort(400, description="User name is required")
 
-    try:
-        data_mgr.create_user(name)
-        return redirect(url_for('index'))
-    except Exception as e:
-        abort(500, description=f"Error fetching movies: {e}")
-    name = request.form.get("name")
-    if name:
-        data_mgr.create_user(name)
+    data_mgr.create_user(name)
     return redirect(url_for("index"))
 
 
 @app.route("/users/<int:user_id>/movies", methods=["GET"])
 def get_movies_route(user_id):
-    try:
-        user = data_mgr.get_user(user_id)
-        if not user:
-            abort(404, description="User not found")
-
-        movies = data_mgr.get_movies_by_user(user_id)
-        return render_template('movies.html', user=user, movies=movies)
-
-    except Exception as e:
-        abort(500, description=f"Error fetching movies: {e}")
     user = data_mgr.get_user(user_id)
     if not user:
-        abort(404)
+        abort(404, description="User not found")
 
     movies = data_mgr.get_movies_by_user(user_id)
     return render_template("movies.html", user=user, movies=movies)
@@ -67,25 +50,17 @@ def get_movies_route(user_id):
 
 @app.route("/users/<int:user_id>/movies", methods=["POST"])
 def add_movie_route(user_id):
-    title = request.form.get('title')
-
+    title = request.form.get("title")
     if not title:
         abort(400, description="Movie title is required")
 
-    try:
-    title = request.form.get("title")
-    if title:
-        data_mgr.add_movie_for_user(user_id, title)
-        return redirect(url_for('get_movies_route', user_id=user_id))
-
-    except Exception as e:
-        abort(500, description=str(e))
+    data_mgr.add_movie_for_user(user_id, title)
     return redirect(url_for("get_movies_route", user_id=user_id))
 
 
 @app.route(
     "/users/<int:user_id>/movies/<int:movie_id>/update",
-    methods=["POST"]
+    methods=["POST"],
 )
 def update_movie_route(user_id, movie_id):
     new_title = request.form.get("title")
@@ -97,7 +72,7 @@ def update_movie_route(user_id, movie_id):
 
 @app.route(
     "/users/<int:user_id>/movies/<int:movie_id>/delete",
-    methods=["POST"]
+    methods=["POST"],
 )
 def delete_movie_route(user_id, movie_id):
     data_mgr.delete_movie(user_id, movie_id)
