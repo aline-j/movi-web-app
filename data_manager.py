@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import logging
+from sqlalchemy import func
 from models import db, User, Movie
 
 load_dotenv()
@@ -58,11 +59,14 @@ class DataManager:
             logger.warning(f"User {user_id} not found")
             return None
 
-        existing_movie = Movie.query.filter_by(title=title, user_id=user_id).first()
+        existing_movie = Movie.query.filter(
+            func.lower(Movie.title) == func.lower(title),
+            Movie.user_id == user_id
+        ).first()
 
         if existing_movie:
             logger.info(f"Movie {title} already exists for user {user_id}")
-            return existing_movie
+            return None
 
         try:
             response = requests.get(
@@ -74,13 +78,10 @@ class DataManager:
             data = response.json()
 
             if data.get("Response") == "False":
-                logger.info(f"Movie {title} not found")
                 return None
 
             year_raw = data.get("Year", "")
-            publication_year = (
-                int(year_raw[:4]) if year_raw[:4].isdigit() else None
-            )
+            publication_year = int(year_raw[:4]) if year_raw[:4].isdigit() else None
 
             movie = Movie(
                 title=data.get("Title"),
@@ -96,7 +97,7 @@ class DataManager:
 
         except Exception:
             db.session.rollback()
-            logger.exception(f"Error adding movie for user {user_id}")
+            logger.exception("Error adding movie")
             return None
 
     def get_movies_by_user(self, user_id):
