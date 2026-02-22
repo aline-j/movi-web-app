@@ -79,6 +79,7 @@ class DataManager:
             movie = Movie(
                 title=data["Title"],
                 publication_year=int(data["Year"]),
+                director=data.get("Director"),
                 cover=data.get("Poster"),
                 user_id=user_id
             )

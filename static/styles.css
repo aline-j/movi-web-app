@@ -68,6 +68,7 @@ h1 {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
   transition: 0.2s ease;
   gap: 15px;
+  font-weight: bold;
 }
 
 .user-card:hover,
@@ -83,6 +84,11 @@ h1 {
   display: block;
 }
 
+.movie-card input[type="text"] {
+    font-weight: bold;
+    padding: 6px;
+}
+
 /* ===== Buttons ===== */
 .btn {
   display: inline-block;
@@ -94,6 +100,7 @@ h1 {
   border: none;
   cursor: pointer;
   font-size: 0.9rem;
+  font-weight: normal;
   transition: 0.2s ease;
 }
 
