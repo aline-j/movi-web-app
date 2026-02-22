@@ -82,6 +82,7 @@ def add_movie_route(user_id):
 
     if movie is None:
         flash(f"Movie '{title}' is already in your database.", "danger")
+        return redirect(url_for("get_movies_route", user_id=user_id))
 
     flash(f"Movie '{movie.title}' added successfully.", "success")
     return redirect(url_for("get_movies_route", user_id=user_id))
