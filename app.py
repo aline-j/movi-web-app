@@ -29,6 +29,16 @@ def index():
 
 @app.route("/users", methods=["POST"])
 def create_user_route():
+    name = request.form.get('name')
+
+    if not name:
+        abort(400, description="User name is required")
+
+    try:
+        data_mgr.create_user(name)
+        return redirect(url_for('index'))
+    except Exception as e:
+        abort(500, description=f"Error fetching movies: {e}")
     name = request.form.get("name")
     if name:
         data_mgr.create_user(name)
@@ -37,6 +47,16 @@ def create_user_route():
 
 @app.route("/users/<int:user_id>/movies", methods=["GET"])
 def get_movies_route(user_id):
+    try:
+        user = data_mgr.get_user(user_id)
+        if not user:
+            abort(404, description="User not found")
+
+        movies = data_mgr.get_movies_by_user(user_id)
+        return render_template('movies.html', user=user, movies=movies)
+
+    except Exception as e:
+        abort(500, description=f"Error fetching movies: {e}")
     user = data_mgr.get_user(user_id)
     if not user:
         abort(404)
@@ -47,10 +67,19 @@ def get_movies_route(user_id):
 
 @app.route("/users/<int:user_id>/movies", methods=["POST"])
 def add_movie_route(user_id):
+    title = request.form.get('title')
+
+    if not title:
+        abort(400, description="Movie title is required")
+
+    try:
     title = request.form.get("title")
     if title:
         data_mgr.add_movie_for_user(user_id, title)
+        return redirect(url_for('get_movies_route', user_id=user_id))
 
+    except Exception as e:
+        abort(500, description=str(e))
     return redirect(url_for("get_movies_route", user_id=user_id))
 
 
