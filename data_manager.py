@@ -1,4 +1,6 @@
 import os
+from lib2to3.main import diff_texts
+
 import requests
 from models import db, User, Movie
 import logging
@@ -77,6 +79,7 @@ class DataManager():
             movie = Movie(
                 title=data["Title"],
                 publication_year=int(data["Year"]),
+                director=data.get("Director"),
                 cover=data.get("Poster"),
                 user_id=user_id
             )
