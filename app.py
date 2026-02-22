@@ -1,11 +1,32 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, abort
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    abort,
+    flash)
 from data_manager import DataManager
-from models import db
+from models import db, Movie
 
 app = Flask(__name__)
 
 data_mgr = DataManager()
+
+# Set the key for Flash messages
+load_dotenv()
+flash_key = os.environ.get("FLASH_KEY")
+
+if not flash_key:
+    raise RuntimeError(
+        "FLASH_KEY is not set. "
+        "Please configure the environment variable with your FLASH_KEY "
+        "(see README)."
+    )
+
+app.config["SECRET_KEY"] = flash_key
 
 
 # ------------------ Configuration ------------------
@@ -32,7 +53,8 @@ def index():
 def create_user_route():
     name = request.form.get("name")
     if not name:
-        abort(400, description="User name is required")
+        flash("Name is required.", "danger")
+        return redirect(url_for("index"))
 
     data_mgr.create_user(name)
     return redirect(url_for("index"))
@@ -51,10 +73,17 @@ def get_movies_route(user_id):
 @app.route("/users/<int:user_id>/movies", methods=["POST"])
 def add_movie_route(user_id):
     title = request.form.get("title")
-    if not title:
-        abort(400, description="Movie title is required")
 
-    data_mgr.add_movie_for_user(user_id, title)
+    if not title:
+        flash("Movie title is required.", "danger")
+        return redirect(url_for("get_movies_route", user_id=user_id))
+
+    movie = data_mgr.add_movie_for_user(user_id, title)
+
+    if movie is None:
+        flash(f"Movie '{title}' is already in your database.", "danger")
+
+    flash(f"Movie '{movie.title}' added successfully.", "success")
     return redirect(url_for("get_movies_route", user_id=user_id))
 
 
@@ -64,8 +93,15 @@ def add_movie_route(user_id):
 )
 def update_movie_route(user_id, movie_id):
     new_title = request.form.get("title")
-    if new_title:
-        data_mgr.update_movie_title(user_id, movie_id, new_title)
+
+    movie = Movie.query.get(movie_id)
+
+    if not new_title or new_title == movie.title:
+        flash("Movie title was not changed.", "warning")
+        return redirect(url_for("get_movies_route", user_id=user_id))
+
+    data_mgr.update_movie_title(user_id, movie_id, new_title)
+    flash("Movie updated successfully.", "success")
 
     return redirect(url_for("get_movies_route", user_id=user_id))
 
@@ -75,7 +111,13 @@ def update_movie_route(user_id, movie_id):
     methods=["POST"],
 )
 def delete_movie_route(user_id, movie_id):
-    data_mgr.delete_movie(user_id, movie_id)
+    movie_to_delete = data_mgr.delete_movie(user_id, movie_id)
+
+    if movie_to_delete:
+        flash("Movie deleted successfully.", "success")
+    else:
+        flash("Movie could not be deleted.", "danger")
+
     return redirect(url_for("get_movies_route", user_id=user_id))
 
 # ------------------ Error Handlers ------------------
